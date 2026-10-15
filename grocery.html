@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grocery Basket Planner</title>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; margin: 0; background: #f3f5f3; color: #1d1d1d; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 14px; }
+  header { background: #2f5d3a; color: #fff; padding: 14px 0; }
+  header h1 { margin: 0; font-size: 21px; font-weight: 600; }
+  header .sub { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+  #status { background: #e6eee6; border-bottom: 1px solid #cdd8cd; padding: 7px 0; font-size: 13px; }
+  .box { background: #fff; border: 1px solid #d3dbd3; border-radius: 4px; padding: 12px 14px; margin: 12px 0; }
+  .box h2 { font-size: 15px; margin: 0 0 10px 0; padding-bottom: 6px; border-bottom: 1px solid #e3e8e3; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+  .row .box { flex: 1 1 320px; margin: 0; }
+  .fields { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .f label { display: block; font-size: 12px; color: #555; margin-bottom: 2px; }
+  input, select { font-size: 14px; padding: 4px 6px; border: 1px solid #9aa89a; border-radius: 3px; background: #fff; }
+  input[type=text] { width: 150px; }
+  input[type=number] { width: 80px; }
+  button { font-size: 14px; padding: 5px 11px; border: 1px solid #9aa89a; background: #f4f6f4; border-radius: 3px; cursor: pointer; margin: 2px 2px 2px 0; }
+  button:hover { background: #e6eee6; }
+  button.main { background: #3b7a4b; border-color: #2f5d3a; color: #fff; }
+  button.main:hover { background: #2f5d3a; }
+  button.small { padding: 1px 7px; font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #d3dbd3; padding: 5px 7px; text-align: left; }
+  th { background: #e8efe8; }
+  tr:nth-child(even) td { background: #f8faf8; }
+  td.num, th.num { text-align: right; }
+  #msg { color: #b00020; display: block; margin-top: 6px; min-height: 16px; }
+  #out { border-left: 3px solid #3b7a4b; padding-left: 10px; line-height: 1.5; }
+  .note { color: #555; font-size: 13px; margin-top: 6px; }
+  .group { margin-top: 10px; }
+  #list, #out { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Grocery Basket Planner</h1>
+    <div class="sub">DAA Lab Mini Project - Knapsack (DP, Branch and Bound, Greedy), Merge/Quick Sort, Binary Search</div>
+  </div>
+</header>
+<div id="status"><div class="wrap" id="statusText"></div></div>
+
+<div class="wrap">
+
+  <div class="row">
+    <div class="box">
+      <h2>1. Basket limit</h2>
+      <div class="fields">
+        <div class="f"><label>Most weight the basket can carry</label>
+          <input type="number" id="limit" min="0" step="any">
+          <select id="limitUnit"><option value="kg">kg</option><option value="g">g</option></select>
+        </div>
+        <button class="main" onclick="setLimit()">Set limit</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>2. Add item</h2>
+      <div class="fields">
+        <div class="f"><label>Name</label><input type="text" id="name"></div>
+        <div class="f"><label>Weight</label>
+          <input type="number" id="weight" min="0" step="any">
+          <select id="weightUnit"><option value="g">g</option><option value="kg">kg</option></select>
+        </div>
+        <div class="f"><label>Protein (g)</label><input type="number" id="protein" min="0" step="1"></div>
+        <button class="main" onclick="addItem()">Add</button>
+      </div>
+      <div class="group">
+        <button onclick="loadSample()">Load sample items</button>
+        <button onclick="clearAll()">Clear all</button>
+      </div>
+    </div>
+  </div>
+  <span id="msg"></span>
+
+  <div class="box">
+    <h2>3. Items</h2>
+    <div id="list"></div>
+  </div>
+
+  <div class="box">
+    <h2>4. Algorithms</h2>
+    <div>
+      <button class="main" onclick="bestBasket()">Best basket (DP)</button>
+      <button class="main" onclick="branchBoundPlan()">Best basket (Branch and Bound)</button>
+      <button class="main" onclick="quickPlan()">Quick plan (Greedy)</button>
+    </div>
+    <div class="group">
+      <button onclick="compareAll()">Compare algorithms</button>
+      <button onclick="about()">About algorithms</button>
+    </div>
+    <div class="group">
+      Sort using
+      <select id="sortAlgo"><option value="merge">Merge sort</option><option value="quick">Quick sort</option></select>
+      by
+      <select id="sortBy">
+        <option value="1">Name</option>
+        <option value="2">Weight</option>
+        <option value="3">Protein</option>
+        <option value="4">Protein per 100 g</option>
+      </select>
+      <select id="sortOrder"><option value="asc">A-Z / low to high</option><option value="desc">Z-A / high to low</option></select>
+      <button onclick="sortItems()">Sort</button>
+    </div>
+    <div class="group">
+      Search by name (binary search):
+      <input type="text" id="searchName" placeholder="start of the name">
+      <button onclick="searchByName()">Search</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Result</h2>
+    <div id="out">Nothing yet. Add items, set a basket limit and pick an algorithm.</div>
+  </div>
+
+</div>
+
+<script>
+// ---- algorithms ----
+var ops = 0;
+var BB_NODE_LIMIT = 5000000;
+
+// by: 2 = weight, 3 = protein, 4 = protein per gram
+function keyOf(a, by) {
+  if (by == 2) return a.weight;
+  if (by == 3) return a.protein;
+  return a.protein / a.weight;
+}
+
+// by: 1 = name, 2 = weight, 3 = protein, 4 = protein per 100 g
+// true if a should come before b
+function before(a, b, by, desc) {
+  var x, y;
+  ops++;
+  if (by == 1) {
+    x = a.name.toLowerCase();
+    y = b.name.toLowerCase();
+  } else {
+    x = keyOf(a, by);
+    y = keyOf(b, by);
+  }
+  return desc ? x > y : x < y;
+}
+
+function merge(a, l, m, r, by, desc) {
+  var tmp = [], i = l, j = m + 1;
+  while (i <= m && j <= r) {
+    if (before(a[j], a[i], by, desc)) tmp.push(a[j++]);
+    else tmp.push(a[i++]);
+  }
+  while (i <= m) tmp.push(a[i++]);
+  while (j <= r) tmp.push(a[j++]);
+  for (i = 0; i < tmp.length; i++) a[l + i] = tmp[i];
+}
+
+function mergeSort(a, l, r, by, desc) {
+  if (l >= r) return;
+  var m = Math.floor((l + r) / 2);
+  mergeSort(a, l, m, by, desc);
+  mergeSort(a, m + 1, r, by, desc);
+  merge(a, l, m, r, by, desc);
+}
+
+function partition(a, l, r, by, desc) {
+  var pivot = a[r], i = l - 1, t;
+  for (var j = l; j < r; j++) {
+    if (before(a[j], pivot, by, desc)) {
+      i++;
+      t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+  }
+  t = a[i + 1]; a[i + 1] = a[r]; a[r] = t;
+  return i + 1;
+}
+
+function quickSort(a, l, r, by, desc) {
+  if (l < r) {
+    var p = partition(a, l, r, by, desc);
+    quickSort(a, l, p - 1, by, desc);
+    quickSort(a, p + 1, r, by, desc);
+  }
+}
+
+// compares the first letters of the name with the search text (ignores case)
+function cmpPrefix(name, key) {
+  var n = name.toLowerCase().substr(0, key.length);
+  key = key.toLowerCase();
+  if (n < key) return -1;
+  if (n > key) return 1;
+  return 0;
+}
+
+// the list must be sorted by name
+function binarySearch(a, key) {
+  var lo = 0, hi = a.length - 1;
+  while (lo <= hi) {
+    var mid = Math.floor((lo + hi) / 2);
+    var c = cmpPrefix(a[mid].name, key);
+    ops++;
+    if (c == 0) return mid;
+    else if (c < 0) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return -1;
+}
+
+// 0/1 knapsack, dynamic programming. returns {best, chosen[]}
+function knapsack01(a, W) {
+  var n = a.length, cols = W + 1;
+  var dp = new Int32Array((n + 1) * cols);
+  for (var i = 1; i <= n; i++) {
+    for (var w = 0; w <= W; w++) {
+      dp[i * cols + w] = dp[(i - 1) * cols + w];
+      if (a[i - 1].weight <= w) {
+        var take = dp[(i - 1) * cols + (w - a[i - 1].weight)] + a[i - 1].protein;
+        if (take > dp[i * cols + w]) dp[i * cols + w] = take;
+      }
+      ops++;
+    }
+  }
+  var chosen = [], w2 = W;
+  for (var k = n; k >= 1; k--) {
+    if (dp[k * cols + w2] != dp[(k - 1) * cols + w2]) {
+      chosen[k - 1] = true;
+      w2 -= a[k - 1].weight;
+    } else {
+      chosen[k - 1] = false;
+    }
+  }
+  return { best: dp[n * cols + W], chosen: chosen };
+}
+
+/*
+ * 0/1 knapsack, branch and bound.
+ * Go through the items one by one (most protein per gram first). For each item
+ * there are two branches: put it in the basket or leave it out. Before going
+ * deeper we work out an upper bound (the most protein we could still get, using
+ * the greedy fractional idea). If that bound cannot beat the best answer so far,
+ * we cut the branch off.
+ * returns {best, chosen[], nodes, pruned, stopped}
+ */
+function branchAndBound(a, W) {
+  var n = a.length, order = [], i, j, tmp;
+
+  // sort item numbers by protein per gram, best first (insertion sort)
+  for (i = 0; i < n; i++) order.push(i);
+  for (i = 1; i < n; i++) {
+    tmp = order[i];
+    j = i - 1;
+    while (j >= 0 && a[tmp].protein * a[order[j]].weight > a[order[j]].protein * a[tmp].weight) {
+      order[j + 1] = order[j];
+      j--;
+    }
+    order[j + 1] = tmp;
+  }
+  var s = [];
+  for (i = 0; i < n; i++) s.push(a[order[i]]);
+
+  var best = 0, bestSet = [], cur = [], nodes = 0, pruned = 0, stopped = false;
+  for (i = 0; i < n; i++) { bestSet.push(false); cur.push(false); }
+
+  // upper bound for the branch that starts at 'level'
+  function bound(level, weight, protein) {
+    var b = protein, left = W - weight;
+    for (var k = level; k < n && left > 0; k++) {
+      if (s[k].weight <= left) {
+        left -= s[k].weight;
+        b += s[k].protein;
+      } else {
+        b += left * s[k].protein / s[k].weight;
+        left = 0;
+      }
+    }
+    return b;
+  }
+
+  function search(level, weight, protein) {
+    if (stopped) return;
+    if (nodes >= BB_NODE_LIMIT) { stopped = true; return; }
+    nodes++;
+
+    if (protein > best) {
+      best = protein;
+      bestSet = cur.slice();
+    }
+    if (level == n) return;
+
+    // protein is a whole number, so the bound can be rounded down
+    if (Math.floor(bound(level, weight, protein) + 0.000001) <= best) {
+      pruned++;
+      return;
+    }
+
+    // branch 1: put this item in
+    if (weight + s[level].weight <= W) {
+      cur[level] = true;
+      search(level + 1, weight + s[level].weight, protein + s[level].protein);
+      cur[level] = false;
+    }
+    // branch 2: leave this item out
+    search(level + 1, weight, protein);
+  }
+
+  search(0, 0, 0);
+
+  var chosen = [];
+  for (i = 0; i < n; i++) chosen.push(false);
+  for (i = 0; i < n; i++) if (bestSet[i]) chosen[order[i]] = true;
+  return { best: best, chosen: chosen, nodes: nodes, pruned: pruned, stopped: stopped };
+}
+
+// greedy fractional knapsack. returns {total, steps[]}
+function fractionalKnapsack(a, W) {
+  var copy = a.slice();
+  mergeSort(copy, 0, copy.length - 1, 4, true);
+  var left = W, total = 0, steps = [];
+  for (var i = 0; i < copy.length && left > 0; i++) {
+    if (copy[i].weight <= left) {
+      left -= copy[i].weight;
+      total += copy[i].protein;
+      steps.push({ name: copy[i].name, taken: copy[i].weight, part: 1 });
+    } else {
+      var frac = left / copy[i].weight;
+      total += frac * copy[i].protein;
+      steps.push({ name: copy[i].name, taken: left, part: frac });
+      left = 0;
+    }
+  }
+  return { total: total, steps: steps };
+}
+// ---- end algorithms ----
+
+
+// ---- data and page code ----
+var items = [];
+var limit = 0;          // basket limit in grams
+var MAX_WEIGHT = 100000;
+var MAX_PROTEIN = 10000;
+
+function save() {
+  try { localStorage.setItem("grocery", JSON.stringify({ items: items, limit: limit })); } catch (e) {}
+}
+
+function load() {
+  try {
+    var s = localStorage.getItem("grocery");
+    if (s) {
+      var d = JSON.parse(s);
+      items = d.items || [];
+      limit = d.limit || 0;
+    }
+  } catch (e) {}
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 500 g, 1.25 kg, 3 kg
+function fmtWeight(g) {
+  if (g < 1000) return g + " g";
+  return parseFloat((g / 1000).toFixed(3)) + " kg";
+}
+
+// reads a number box and its unit box, returns grams (or NaN)
+function readGrams(valueId, unitId) {
+  var v = parseFloat(document.getElementById(valueId).value);
+  if (isNaN(v) || v <= 0) return NaN;
+  var unit = document.getElementById(unitId).value;
+  return Math.round(unit == "kg" ? v * 1000 : v);
+}
+
+function say(text) {
+  document.getElementById("msg").textContent = text || "";
+}
+
+function show(html) {
+  document.getElementById("out").innerHTML = html;
+}
+
+function drawList() {
+  var box = document.getElementById("list");
+  if (items.length == 0) {
+    box.innerHTML = "No items yet.";
+    return;
+  }
+  var h = "<table><tr><th>No.</th><th>Item</th><th class='num'>Weight</th><th class='num'>Protein (g)</th><th class='num'>Protein/100g</th><th></th></tr>";
+  for (var i = 0; i < items.length; i++) {
+    h += "<tr><td>" + (i + 1) + "</td><td>" + esc(items[i].name) + "</td><td class='num'>" + fmtWeight(items[i].weight) +
+         "</td><td class='num'>" + items[i].protein + "</td><td class='num'>" + (items[i].protein * 100 / items[i].weight).toFixed(2) +
+         "</td><td><button class='small' onclick='removeItem(" + i + ")'>Delete</button></td></tr>";
+  }
+  h += "</table><div class='note'>Protein/100g = grams of protein you get from every 100 g of the item.</div>";
+  box.innerHTML = h;
+}
+
+function refresh() {
+  drawList();
+  var l = document.getElementById("limit");
+  if (limit) {
+    if (limit % 1000 == 0) {
+      l.value = limit / 1000;
+      document.getElementById("limitUnit").value = "kg";
+    } else {
+      l.value = limit;
+      document.getElementById("limitUnit").value = "g";
+    }
+  } else {
+    l.value = "";
+  }
+  document.getElementById("statusText").textContent =
+    "Items: " + items.length + "     Basket limit: " + (limit ? fmtWeight(limit) : "not set");
+}
+
+function setLimit() {
+  var g = readGrams("limit", "limitUnit");
+  if (isNaN(g) || g < 1 || g > MAX_WEIGHT) { say("Basket limit must be between 1 g and 100 kg."); return; }
+  limit = g;
+  save();
+  say("");
+  refresh();
+  show("Basket limit set to " + fmtWeight(limit) + ".");
+}
+
+function addItem() {
+  var name = document.getElementById("name").value.trim();
+  var g = readGrams("weight", "weightUnit");
+  var pText = document.getElementById("protein").value.trim();
+  var p = Number(pText);
+  if (name == "") { say("Enter a name."); return; }
+  if (isNaN(g) || g < 1 || g > MAX_WEIGHT) { say("Weight must be between 1 g and 100 kg."); return; }
+  if (pText == "" || !Number.isInteger(p) || p < 0 || p > MAX_PROTEIN) { say("Protein must be a whole number of grams (0 to 10000)."); return; }
+  if (items.length >= 50) { say("List is full (max 50 items)."); return; }
+  items.push({ name: name, weight: g, protein: p });
+  document.getElementById("name").value = "";
+  document.getElementById("weight").value = "";
+  document.getElementById("protein").value = "";
+  save();
+  say("");
+  refresh();
+}
+
+function removeItem(i) {
+  items.splice(i, 1);
+  save();
+  refresh();
+}
+
+function clearAll() {
+  if (!confirm("Delete all items?")) return;
+  items = [];
+  save();
+  refresh();
+  show("List cleared.");
+}
+
+function loadSample() {
+  var names = ["Potato", "Pumpkin", "Tomato", "Onion", "Spinach", "Cauliflower", "Cabbage", "Carrot",
+               "Green peas", "Broccoli", "Sweet corn", "Paneer", "Tofu", "Peanuts", "Moong dal", "Soya chunks"];
+  var weights = [1000, 1500, 500, 1000, 250, 600, 800, 500, 300, 400, 400, 200, 300, 250, 500, 200];
+  var proteins = [20, 15, 5, 11, 7, 11, 10, 5, 15, 11, 13, 36, 24, 64, 120, 104];
+  items = [];
+  for (var i = 0; i < names.length; i++)
+    items.push({ name: names[i], weight: weights[i], protein: proteins[i] });
+  limit = 3000;
+  save();
+  say("");
+  refresh();
+  show("Loaded " + names.length + " sample items, basket limit set to 3 kg.");
+}
+
+function ready() {
+  if (items.length == 0 || limit == 0) {
+    show("Add items and set a basket limit first.");
+    return false;
+  }
+  return true;
+}
+
+// table of the chosen items (used by DP and Branch and Bound)
+function planHtml(chosen, best) {
+  var total = 0, rows = "", h = "";
+  for (var i = 0; i < items.length; i++) {
+    if (chosen[i]) {
+      rows += "<tr><td>" + esc(items[i].name) + "</td><td class='num'>" + fmtWeight(items[i].weight) + "</td><td class='num'>" + items[i].protein + "</td></tr>";
+      total += items[i].weight;
+    }
+  }
+  if (rows == "") h += "Nothing fits in this basket.";
+  else h += "<table><tr><th>Item</th><th class='num'>Weight</th><th class='num'>Protein (g)</th></tr>" + rows + "</table>";
+  h += "<br>Total weight: " + fmtWeight(total) + "<br>Space left: " + fmtWeight(limit - total) + "<br>Total protein: " + best + " g";
+  return h;
+}
+
+function bestBasket() {
+  if (!ready()) return;
+  ops = 0;
+  var r = knapsack01(items, limit);
+  var h = "<b>Best basket for a " + fmtWeight(limit) + " limit (Dynamic Programming)</b><br><br>";
+  h += planHtml(r.chosen, r.best);
+  h += "<br>Table updates: " + ops;
+  show(h);
+}
+
+function branchBoundPlan() {
+  if (!ready()) return;
+  var r = branchAndBound(items, limit);
+  var h = "<b>Best basket for a " + fmtWeight(limit) + " limit (Branch and Bound)</b><br><br>";
+  h += planHtml(r.chosen, r.best);
+  h += "<br>Branches tried: " + r.nodes + ", branches cut off: " + r.pruned;
+  if (r.stopped) h += "<div class='note'>Stopped early (too many branches), so this may not be the best answer.</div>";
+  show(h);
+}
+
+function quickPlan() {
+  if (!ready()) return;
+  var r = fractionalKnapsack(items, limit);
+  var h = "<b>Greedy plan, most protein per gram first (limit " + fmtWeight(limit) + ")</b><br><br>";
+  h += "<table><tr><th>Item</th><th class='num'>Bought</th><th class='num'>Weight taken</th></tr>";
+  for (var i = 0; i < r.steps.length; i++) {
+    var s = r.steps[i];
+    h += "<tr><td>" + esc(s.name) + "</td><td class='num'>" + (s.part == 1 ? "full" : (s.part * 100).toFixed(1) + "% only") +
+         "</td><td class='num'>" + fmtWeight(Math.round(s.taken)) + "</td></tr>";
+  }
+  h += "</table><br>Total protein: " + r.total.toFixed(2) + " g";
+  h += "<div class='note'>This assumes you can buy part of an item (like loose vegetables). For things you buy whole, use the DP or Branch and Bound basket. " +
+       "This value is usually an upper limit of what those two can reach.</div>";
+  show(h);
+}
+
+function sortItems() {
+  if (items.length == 0) { show("No items to sort."); return; }
+  var algo = document.getElementById("sortAlgo").value;
+  var by = parseInt(document.getElementById("sortBy").value);
+  var desc = document.getElementById("sortOrder").value == "desc";
+  ops = 0;
+  if (algo == "merge") mergeSort(items, 0, items.length - 1, by, desc);
+  else quickSort(items, 0, items.length - 1, by, desc);
+  save();
+  refresh();
+  show("Sorted with " + (algo == "merge" ? "merge sort" : "quick sort") + ". Comparisons: " + ops);
+}
+
+function searchByName() {
+  if (items.length == 0) { show("No items yet."); return; }
+  var key = document.getElementById("searchName").value.trim();
+  if (key == "") { show("Type the start of a name to search for."); return; }
+  // binary search needs sorted data, so sort a copy by name first
+  var copy = items.slice();
+  mergeSort(copy, 0, copy.length - 1, 1, false);
+  ops = 0;
+  var pos = binarySearch(copy, key);
+  if (pos == -1) { show("No item starts with \"" + esc(key) + "\". (" + ops + " steps)"); return; }
+  var h = "Found (" + ops + " steps):<br>";
+  var i = pos;
+  while (i > 0 && cmpPrefix(copy[i - 1].name, key) == 0) i--;
+  while (i < copy.length && cmpPrefix(copy[i].name, key) == 0) {
+    h += esc(copy[i].name) + " - " + fmtWeight(copy[i].weight) + ", " + copy[i].protein + " g protein<br>";
+    i++;
+  }
+  show(h);
+}
+
+function timeIt(fn, runs) {
+  var t = performance.now();
+  for (var i = 0; i < runs; i++) fn();
+  return (performance.now() - t) * 1000 / runs;   // microseconds per run
+}
+
+function compareAll() {
+  if (!ready()) return;
+  var n = items.length;
+  var cells = (n + 1) * (limit + 1);
+  var runs = Math.max(1, Math.min(200, Math.floor(20000000 / cells)));
+
+  ops = 0;
+  var dp = knapsack01(items, limit);
+  var dpOps = ops;
+  var tDP = timeIt(function () { knapsack01(items, limit); }, runs);
+
+  var bb = branchAndBound(items, limit);
+  var bbRuns = Math.max(1, Math.min(2000, Math.floor(2000000 / (bb.nodes + 1))));
+  var tBB = timeIt(function () { branchAndBound(items, limit); }, bbRuns);
+
+  var fr = fractionalKnapsack(items, limit);
+  var tFrac = timeIt(function () { fractionalKnapsack(items, limit); }, 2000);
+
+  var c = items.slice();
+  ops = 0; mergeSort(c, 0, n - 1, 2, false);
+  var mOps = ops;
+  var tMerge = timeIt(function () { var x = items.slice(); mergeSort(x, 0, n - 1, 2, false); }, 2000);
+
+  c = items.slice();
+  ops = 0; quickSort(c, 0, n - 1, 2, false);
+  var qOps = ops;
+  var tQuick = timeIt(function () { var x = items.slice(); quickSort(x, 0, n - 1, 2, false); }, 2000);
+
+  var h = "Input: " + n + " items, basket limit " + fmtWeight(limit) + "<br><br>";
+  h += "<b>Best basket</b><table><tr><th>Algorithm</th><th class='num'>Protein (g)</th><th class='num'>Steps</th><th class='num'>Time (us)</th></tr>";
+  h += "<tr><td>0/1 Knapsack (DP)</td><td class='num'>" + dp.best + "</td><td class='num'>" + dpOps + "</td><td class='num'>" + tDP.toFixed(2) + "</td></tr>";
+  h += "<tr><td>0/1 Knapsack (Branch and Bound)</td><td class='num'>" + bb.best + "</td><td class='num'>" + bb.nodes + "</td><td class='num'>" + tBB.toFixed(2) + "</td></tr>";
+  h += "<tr><td>Fractional (Greedy)</td><td class='num'>" + fr.total.toFixed(2) + "</td><td class='num'>-</td><td class='num'>" + tFrac.toFixed(2) + "</td></tr></table>";
+  h += "<div class='note'>DP steps = table updates. Branch and Bound steps = branches tried.</div><br>";
+  h += "<b>Sorting by weight</b><table><tr><th>Algorithm</th><th class='num'>Comparisons</th><th class='num'>Time (us)</th></tr>";
+  h += "<tr><td>Merge sort</td><td class='num'>" + mOps + "</td><td class='num'>" + tMerge.toFixed(2) + "</td></tr>";
+  h += "<tr><td>Quick sort</td><td class='num'>" + qOps + "</td><td class='num'>" + tQuick.toFixed(2) + "</td></tr></table>";
+  h += "<div class='note'>Times are averages over many runs, so they change a little each time.</div>";
+  show(h);
+}
+
+function about() {
+  show("<table><tr><th>Algorithm</th><th>Type</th><th>Time</th><th>Used for</th></tr>" +
+       "<tr><td>0/1 Knapsack</td><td>Dynamic Programming</td><td>O(n*W)</td><td>Best basket</td></tr>" +
+       "<tr><td>0/1 Knapsack</td><td>Branch and Bound</td><td>O(2^n) worst</td><td>Best basket</td></tr>" +
+       "<tr><td>Fractional Knapsack</td><td>Greedy</td><td>O(n log n)</td><td>Quick estimate</td></tr>" +
+       "<tr><td>Merge sort</td><td>Divide and Conquer</td><td>O(n log n)</td><td>Sorting items</td></tr>" +
+       "<tr><td>Quick sort</td><td>Divide and Conquer</td><td>O(n log n) avg</td><td>Sorting items</td></tr>" +
+       "<tr><td>Binary search</td><td>Divide and Conquer</td><td>O(log n)</td><td>Find by name</td></tr></table>" +
+       "<div class='note'>n = number of items, W = basket limit in grams. Branch and Bound is slow in the worst case " +
+       "but usually tries far fewer branches than 2^n because it cuts off bad ones early.</div>");
+}
+
+load();
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# compiled program
+grocery
+grocery.exe
+*.o
+
+# data saved by the program
+groceries.txt
